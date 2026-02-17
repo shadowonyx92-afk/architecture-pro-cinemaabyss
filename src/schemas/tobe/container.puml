@@ -7,35 +7,41 @@ Person(user, "Пользователь", "Использует мобильно�
 
 System_Boundary(ca, "CinemaAbyss Platform") {
 
-    Container(proxy, "Proxy Service (API Gateway)", "Go", "Фасад для монолита и микросервисов, маршрутизация трафика с фиче-флагом")
-    
-    Container(monolith, "Monolith", "Go + PostgreSQL", "Управление пользователями, платежами, подписками, метаданными фильмов")
-    Container(movies, "Movies Service", "Go + PostgreSQL", "Метаданные фильмов, рейтинги, жанры")
-    Container(events, "Events Service", "Go + Kafka", "Обработка событий пользователей, фильмов и платежей")
-    
-    ContainerDb(pg, "PostgreSQL", "Хранение пользователей, фильмов, платежей и подписок")
-    Container(kafka, "Kafka", "Event Streaming", "События: User/Movie/Payment")
-    Container(kafkaUI, "Kafka UI", "UI", "Инструмент для мониторинга топиков")
+    Container(proxy, "Proxy Service (API Gateway)", "Go",
+        "Единая точка входа. Маршрутизация запросов и постепенная миграция (Strangler Fig)")
+
+    Container(monolith, "Monolith", "Go",
+        "Пользователи, платежи, подписки (legacy)")
+
+    Container(movies, "Movies Service", "Go",
+        "Метаданные фильмов, жанры, рейтинги (новый сервис)")
+
+    Container(events, "Events Service", "Go",
+        "Обработка и агрегация доменных событий")
+
+    ContainerDb(pg, "PostgreSQL", "Database",
+        "Хранение пользователей, фильмов, платежей и подписок")
+
+    Container(kafka, "Kafka", "Event Streaming",
+        "Доменные события: User / Movie / Payment")
+
+    Container(kafkaUI, "Kafka UI", "Web UI",
+        "Мониторинг и отладка топиков Kafka")
 }
 
-' Пользователь взаимодействует с Proxy
 Rel(user, proxy, "Использует", "HTTPS/REST")
 
-' Proxy взаимодействует с монолитом и микросервисами
-Rel(proxy, monolith, "Прямой REST-запрос к функциональности монолита")
-Rel(proxy, movies, "Прямой REST-запрос к сервису фильмов")
+Rel(proxy, monolith, "Маршрутизация HTTP-запросов", "REST")
+Rel(proxy, movies, "Маршрутизация HTTP-запросов", "REST")
 
-' Монолит и Movies Service используют PostgreSQL
-Rel(monolith, pg, "CRUD операции с пользователями, фильмами, платежами и подписками", "SQL")
-Rel(movies, pg, "CRUD операции с метаданными фильмов", "SQL")
+Rel(monolith, pg, "CRUD операции", "SQL")
+Rel(movies, pg, "CRUD операции", "SQL")
 
-' Events Service получает события от приложений
-Rel(monolith, events, "Отправка событий User/Payment/Movie", "REST/Kafka")
-Rel(movies, events, "Отправка событий Movie", "REST/Kafka")
-Rel(proxy, events, "Публикация событий через Events Service", "REST/Kafka")
+Rel(monolith, kafka, "Публикация доменных событий", "Kafka protocol")
+Rel(movies, kafka, "Публикация доменных событий", "Kafka protocol")
 
-' Events Service взаимодействует через Kafka
-Rel(events, kafka, "Publish / Consume событий", "Kafka protocol")
+Rel(events, kafka, "Подписка и обработка событий", "Kafka protocol")
+
 Rel(kafkaUI, kafka, "Мониторинг топиков", "UI")
 
 @enduml
