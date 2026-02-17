@@ -1,0 +1,59 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title CinemaAbyss — C4 Container Diagram (Logical, Updated with Recommendation System)
+
+' Пользователь
+Person(user, "Пользователь", "Использует веб, мобильные устройства или Smart TV для просмотра фильмов, управления подписками и оценками")
+
+' Внешняя рекомендательная система
+System_Ext(recommendation, "Recommendation Engine", "Сторонний сервис", "Подбирает персонализированные фильмы для пользователей")
+
+' Системная граница
+System_Boundary(cinema, "CinemaAbyss Platform") {
+
+    ' API Gateway / Proxy
+    Container(proxy, "API Gateway / Proxy Service", "Go", "Единая точка входа. Маршрутизация REST-запросов к монолиту и микросервисам. Поддержка постепенной миграции")
+
+    ' Основной монолит
+    Container(monolith, "Monolith Service", "Go + PostgreSQL", "CRUD пользователей, подписок, платежей, просмотров и оценок. Публикует события в Kafka")
+
+    ' Микросервис фильмов
+    Container(movies, "Movies Microservice", "Go + PostgreSQL", "CRUD фильмов и жанров. Публикует события о новых фильмах")
+
+    ' Микросервис событий
+    Container(events, "Events Microservice", "Go + Kafka", "Асинхронная обработка событий: платежи, действия пользователей, просмотры, новые фильмы")
+
+    ' База данных
+    ContainerDb(postgres, "PostgreSQL Database", "Хранение пользователей, подписок, платежей, фильмов, жанров, просмотров и оценок")
+
+    ' Kafka Cluster
+    Container(kafka, "Kafka Cluster", "Apache Kafka", "Очередь событий платформы, pub/sub")
+
+    ' UI для Kafka
+    Container(kafkaUI, "Kafka UI", "Web App", "Мониторинг топиков и сообщений Kafka")
+}
+
+' Взаимодействие пользователя с платформой
+Rel(user, proxy, "Использует", "HTTPS")
+
+' Proxy направляет REST-запросы
+Rel(proxy, monolith, "CRUD пользователей, подписок, платежей, просмотров и оценок", "HTTPS/REST")
+Rel(proxy, movies, "CRUD фильмов и жанров", "HTTPS/REST")
+
+' Монолит может делать вызовы к внешней рекомендательной системе
+Rel(monolith, recommendation, "Запрос персонализированных подборок фильмов", "HTTPS/REST")
+
+' Доступ к базе данных
+Rel(monolith, postgres, "Чтение и запись: users, subscriptions, payments, views, user_ratings", "SQL")
+Rel(movies, postgres, "Чтение и запись: movies, movie_genres", "SQL")
+
+' Событийная модель через Kafka
+Rel(monolith, kafka, "Публикация событий (платежи, подписки, просмотры, оценки пользователей)", "Kafka protocol")
+Rel(movies, kafka, "Публикация событий (новые/обновленные фильмы и жанры)", "Kafka protocol")
+Rel(events, kafka, "Подписка на события платформы", "Kafka protocol")
+
+' Пользовательский мониторинг Kafka
+Rel(kafkaUI, kafka, "Чтение топиков и сообщений", "Kafka protocol / HTTP API")
+
+@enduml

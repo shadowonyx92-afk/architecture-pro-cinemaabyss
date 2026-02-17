@@ -1,0 +1,41 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title CinemaAbyss — C4 Container Diagram (TO-BE)
+
+Person(user, "Пользователь", "Использует мобильное устройство, веб или Smart TV")
+
+System_Boundary(ca, "CinemaAbyss Platform") {
+
+    Container(proxy, "Proxy Service (API Gateway)", "Go", "Фасад для монолита и микросервисов, маршрутизация трафика с фиче-флагом")
+    
+    Container(monolith, "Monolith", "Go + PostgreSQL", "Управление пользователями, платежами, подписками, метаданными фильмов")
+    Container(movies, "Movies Service", "Go + PostgreSQL", "Метаданные фильмов, рейтинги, жанры")
+    Container(events, "Events Service", "Go + Kafka", "Обработка событий пользователей, фильмов и платежей")
+    
+    ContainerDb(pg, "PostgreSQL", "Хранение пользователей, фильмов, платежей и подписок")
+    Container(kafka, "Kafka", "Event Streaming", "События: User/Movie/Payment")
+    Container(kafkaUI, "Kafka UI", "UI", "Инструмент для мониторинга топиков")
+}
+
+' Пользователь взаимодействует с Proxy
+Rel(user, proxy, "Использует", "HTTPS/REST")
+
+' Proxy взаимодействует с монолитом и микросервисами
+Rel(proxy, monolith, "Прямой REST-запрос к функциональности монолита")
+Rel(proxy, movies, "Прямой REST-запрос к сервису фильмов")
+
+' Монолит и Movies Service используют PostgreSQL
+Rel(monolith, pg, "CRUD операции с пользователями, фильмами, платежами и подписками", "SQL")
+Rel(movies, pg, "CRUD операции с метаданными фильмов", "SQL")
+
+' Events Service получает события от приложений
+Rel(monolith, events, "Отправка событий User/Payment/Movie", "REST/Kafka")
+Rel(movies, events, "Отправка событий Movie", "REST/Kafka")
+Rel(proxy, events, "Публикация событий через Events Service", "REST/Kafka")
+
+' Events Service взаимодействует через Kafka
+Rel(events, kafka, "Publish / Consume событий", "Kafka protocol")
+Rel(kafkaUI, kafka, "Мониторинг топиков", "UI")
+
+@enduml

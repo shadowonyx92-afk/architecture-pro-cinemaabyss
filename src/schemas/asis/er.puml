@@ -1,0 +1,83 @@
+@startuml
+!define TABLE(name,desc) class name as "desc" << (T,#FFAAAA) >>
+!define PK(x) <u>x</u>
+!define FK(x) <i>x</i>
+
+title CinemaAbyss — ER Diagram
+
+' Таблицы
+TABLE(users, "Users") {
+    PK(id) : SERIAL
+    username : VARCHAR(100)
+    email : VARCHAR(255)
+    password_hash : VARCHAR(255)
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+TABLE(movies, "Movies") {
+    PK(id) : SERIAL
+    title : VARCHAR(255)
+    description : TEXT
+    rating : DECIMAL(3,1)
+    release_date : DATE
+    duration : INTEGER
+    poster_url : VARCHAR(255)
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+TABLE(movie_genres, "Movie Genres") {
+    FK(movie_id) : INTEGER
+    PK(genre) : VARCHAR(50)
+}
+
+TABLE(payments, "Payments") {
+    PK(id) : SERIAL
+    FK(user_id) : INTEGER
+    amount : DECIMAL(10,2)
+    timestamp : TIMESTAMP
+    status : VARCHAR(50)
+    payment_method : VARCHAR(50)
+    transaction_id : VARCHAR(255)
+}
+
+TABLE(subscriptions, "Subscriptions") {
+    PK(id) : SERIAL
+    FK(user_id) : INTEGER
+    plan_type : VARCHAR(50)
+    start_date : TIMESTAMP
+    end_date : TIMESTAMP
+    auto_renew : BOOLEAN
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+TABLE(views, "Views") {
+    PK(id) : SERIAL
+    FK(user_id) : INTEGER
+    FK(movie_id) : INTEGER
+    view_date : TIMESTAMP
+    duration : INTEGER
+    completed : BOOLEAN
+}
+
+TABLE(user_ratings, "User Ratings") {
+    FK(user_id) : INTEGER
+    FK(movie_id) : INTEGER
+    PK(rating) : INTEGER
+    review : TEXT
+    created_at : TIMESTAMP
+}
+
+' Связи
+users "1" -- "0..*" payments : "user_id"
+users "1" -- "0..*" subscriptions : "user_id"
+users "1" -- "0..*" views : "user_id"
+users "1" -- "0..*" user_ratings : "user_id"
+
+movies "1" -- "0..*" movie_genres : "movie_id"
+movies "1" -- "0..*" views : "movie_id"
+movies "1" -- "0..*" user_ratings : "movie_id"
+
+@enduml
