@@ -1,4 +1,4 @@
-package proxy
+package main
 
 import (
 	"io"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,28 +42,23 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	router.Any("/api/movies/*path", func(c *gin.Context) {
-		target := chooseMoviesTarget(
-			monolithURL,
-			moviesServiceURL,
-			migrationEnabled,
-			migrationPercent,
-		)
-		log.Printf(
-			"Routing %s %s to %s",
-			c.Request.Method,
-			c.Request.RequestURI,
-			target,
-		)
-		request(c, target)
-	})
-
-	router.Any("/api/events/*path", func(c *gin.Context) {
-		request(c, eventsServiceURL)
-	})
-
 	router.Any("/api/*path", func(c *gin.Context) {
-		request(c, monolithURL)
+		path := c.Param("path") // получаем оставшуюся часть пути, без /api/
+
+		var target string
+
+		// Проверяем только то, что хотим перенести на новый сервис
+		switch {
+		case strings.HasPrefix(path, "movies"):
+			target = chooseMoviesTarget(monolithURL, moviesServiceURL, migrationEnabled, migrationPercent)
+		case strings.HasPrefix(path, "events"):
+			target = eventsServiceURL
+		default:
+			target = monolithURL // всё остальное идёт на монолит
+		}
+
+		log.Printf("Routing %s /api/%s to %s", c.Request.Method, path, target)
+		request(c, target)
 	})
 
 	log.Printf("Proxy service running on %s", addr)
