@@ -134,6 +134,20 @@ services:
     networks:
       - cinemaabyss-network
 
+  tests:
+    image: node:18
+    volumes:
+      - ./tests/postman:/tests
+    working_dir: /tests
+    command: bash -c "npm install && npm run test:docker"
+    depends_on:
+      - monolith
+      - movies-service
+      - events-service
+      - proxy-service
+    networks:
+      - cinemaabyss-network
+
 volumes:
   postgres-data:
 
