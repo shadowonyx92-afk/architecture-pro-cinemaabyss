@@ -124,13 +124,13 @@ jobs:
       - name: Start services with Docker Compose
         run: |
           docker compose up -d
-          sleep 25
+          sleep 30
 
-      - name: Run API tests (Postman / Newman)
+      - name: Run API tests in Docker container
         run: |
-          cd tests/postman
-          npm install
-          npm run test:local
+          docker run --rm --network=cinemaabyss-network \
+            -v ${{ github.workspace }}/tests/postman:/tests \
+            node:18 bash -c "cd /tests && npm install && npm run test:docker"
 
       - name: Shutdown Docker Compose
         if: always()
