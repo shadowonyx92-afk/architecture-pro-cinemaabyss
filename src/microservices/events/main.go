@@ -27,7 +27,23 @@ func main() {
 	router := gin.Default()
 
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, gin.H{"status": true})
+	})
+
+	router.GET("/api/events/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": true})
+	})
+
+	router.POST("/api/events/movie", func(c *gin.Context) {
+		produce("Movie", c)
+	})
+
+	router.POST("/api/events/user", func(c *gin.Context) {
+		produce("User", c)
+	})
+
+	router.POST("/api/events/payment", func(c *gin.Context) {
+		produce("Payment", c)
 	})
 
 	router.POST("/api/events", func(c *gin.Context) {
@@ -41,13 +57,21 @@ func main() {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "event sent", "type": eventType})
+		c.JSON(http.StatusOK, gin.H{"status": "success", "type": eventType})
 	})
 
 	go consumeEvents()
 
 	log.Printf("Events service running on %s", addr)
 	router.Run(addr)
+}
+
+func produce(eventType string, c *gin.Context) {
+	if err := produceEvent(eventType); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "type": eventType})
 }
 
 func produceEvent(eventType string) error {
