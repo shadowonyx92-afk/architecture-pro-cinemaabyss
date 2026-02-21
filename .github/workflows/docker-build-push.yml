@@ -130,7 +130,7 @@ jobs:
         run: |
           cd tests/postman
           npm install
-          npm run test:docker
+          npm run test:local
 
       - name: Shutdown Docker Compose
         if: always()
