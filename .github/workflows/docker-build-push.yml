@@ -41,6 +41,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Start services with Docker Compose
+        run: |
+          docker compose up -d --build
+          sleep 30
+
+      - name: Run API tests in Docker container
+        run: docker compose run --rm tests
+
+      - name: Shutdown Docker Compose
+        if: always()
+        run: docker compose down -v
+
       - name: Extract metadata (tags, labels) for Monolith
         id: meta-monolith
         uses: docker/metadata-action@v4
@@ -120,17 +132,5 @@ jobs:
           push: true
           tags: ${{ steps.meta-proxy.outputs.tags }}
           labels: ${{ steps.meta-proxy.outputs.labels }}
-
-      - name: Start services with Docker Compose
-        run: |
-          docker compose up -d --build
-          sleep 30
-
-      - name: Run API tests in Docker container
-        run: docker compose run --rm tests
-
-      - name: Shutdown Docker Compose
-        if: always()
-        run: docker compose down -v
 
       
