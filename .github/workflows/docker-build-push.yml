@@ -31,6 +31,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -44,7 +47,7 @@ jobs:
       - name: Start services with Docker Compose
         run: |
           docker compose up -d --build
-          sleep 30
+          sleep 45
 
       - name: Run API tests in Docker container
         run: docker compose run --rm tests
@@ -69,8 +72,9 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./src/monolith
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-monolith.outputs.tags }}
+          tags: ghcr.io/${{ github.repository }}/monolith:latest
           labels: ${{ steps.meta-monolith.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -91,8 +95,9 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./src/microservices/movies
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-movies.outputs.tags }}
+          tags: ghcr.io/${{ github.repository }}/movies-service:latest
           labels: ${{ steps.meta-movies.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -111,9 +116,12 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./src/microservices/events
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-events.outputs.tags }}
+          tags: ghcr.io/${{ github.repository }}/events-service:latest
           labels: ${{ steps.meta-events.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Extract metadata (tags, labels) for Proxy Service
         id: meta-proxy
@@ -129,8 +137,11 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./src/microservices/proxy
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-proxy.outputs.tags }}
+          tags: ghcr.io/${{ github.repository }}/proxy-service:latest
           labels: ${{ steps.meta-proxy.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       
