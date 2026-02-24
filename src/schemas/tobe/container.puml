@@ -1,0 +1,40 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title CinemaAbyss — C4 Container Diagram (TO-BE)
+
+Person(user, "Пользователь", "Использует мобильное устройство, веб или Smart TV")
+
+System_Boundary(ca, "CinemaAbyss Platform") {
+
+    Container(proxy, "Proxy Service (API Gateway)", "Go", "Единая точка входа. Маршрутизация запросов и постепенная миграция (Strangler Fig)")
+
+    Container(monolith, "Monolith", "Go", "Пользователи, платежи, подписки (legacy)")
+
+    Container(movies, "Movies Service", "Go", "Метаданные фильмов, жанры, рейтинги (новый сервис)")
+
+    Container(events, "Events Service", "Go", "Обработка и агрегация доменных событий")
+
+    ContainerDb(pg, "PostgreSQL", "Database", "Хранение пользователей, фильмов, платежей и подписок")
+
+    Container(kafka, "Kafka", "Event Streaming", "Доменные события: User / Movie / Payment")
+
+    Container(kafkaUI, "Kafka UI", "Web UI", "Мониторинг и отладка топиков Kafka")
+}
+
+Rel(user, proxy, "Использует", "HTTPS/REST")
+
+Rel(proxy, monolith, "Маршрутизация HTTP-запросов", "REST")
+Rel(proxy, movies, "Маршрутизация HTTP-запросов", "REST")
+
+Rel(monolith, pg, "CRUD операции", "SQL")
+Rel(movies, pg, "CRUD операции", "SQL")
+
+Rel(monolith, kafka, "Публикация доменных событий", "Kafka protocol")
+Rel(movies, kafka, "Публикация доменных событий", "Kafka protocol")
+
+Rel(events, kafka, "Подписка и обработка событий", "Kafka protocol")
+
+Rel(kafkaUI, kafka, "Мониторинг топиков", "UI")
+
+@enduml

@@ -5,8 +5,8 @@
 1. Спроектируйте to be архитектуру КиноБездны, разделив всю систему на отдельные домены и организовав интеграционное взаимодействие и единую точку вызова сервисов.
 Результат представьте в виде контейнерной диаграммы в нотации С4.
 Добавьте ссылку на файл в этот шаблон
-[ссылка на файл](ссылка)
-
+[ссылка на файл](./src/schemas/tobe/container.puml)
+[ссылка на картинку](./src/schemas/tobe/Container.png)
 
 ## Задание 2
 
@@ -59,6 +59,10 @@
 Необходимые тесты для проверки этого API вызываются при запуске npm run test:local из папки tests/postman 
 Приложите скриншот тестов и скриншот состояния топиков Kafka http://localhost:8090 
 
+[Screen1](./src/static/test1.png)
+[Screen2](./src/static/test2.png)
+[Screen3](./src/static/test3.png)
+[KafkaUI](./src/static/kafkaUI.png)
 
 ## Задание 3
 
@@ -274,6 +278,11 @@ cat .docker/config.json | base64
 #### Шаг 3
 Добавьте сюда скриншота вывода при вызове https://cinemaabyss.example.com/api/movies и  скриншот вывода event-service после вызова тестов.
 
+[Прогон тестов - 1](./src/static/kubernetes1.png)
+[Прогон тестов - 2](./src/static/kubernetes2.png)
+[Прогон тестов - 3](./src/static/kubernetes3.png)
+[Список подов](./src/static/kubernetes_pods.png)
+[Получение запроса movies](./src/static/kubernetes_movies.png)
 
 ## Задание 4
 Для простоты дальнейшего обновления и развертывания вам как архитектуру необходимо так же реализовать helm-чарты для прокси-сервиса и проверить работу 
@@ -331,7 +340,7 @@ kubectl delete  namespace cinemaabyss
 ```
 Запустите 
 ```bash
-helm install cinemaabyss .\src\kubernetes\helm --namespace cinemaabyss --create-namespace
+helm install cinemaabyss ./src/kubernetes/helm --namespace cinemaabyss --create-namespace
 ```
 Если в процессе будет ошибка
 ```code
@@ -345,10 +354,10 @@ kubectl get pods -n cinemaabyss
 minikube tunnel
 ```
 
-Потом вызовите 
-https://cinemaabyss.example.com/api/movies
-и приложите скриншот развертывания helm и вывода https://cinemaabyss.example.com/api/movies
+4. Потом вызовите https://cinemaabyss.example.com/api/movies и приложите скриншот развертывания helm и вывода https://cinemaabyss.example.com/api/movies
 
+[Запуск helm](./src/static/helm_start.png)
+[Запрос киношек](./src/static/helm_movies_check.png)
 
 # Задание 5
 Компания планирует активно развиваться и для повышения надежности, безопасности, реализации сетевых паттернов типа Circuit Breaker и канареечного деплоя вам как архитектору необходимо развернуть istio и настроить circuit breaker для monolith и movies сервисов.
@@ -362,7 +371,7 @@ helm install istio-base istio/base -n istio-system --set defaultRevision=default
 helm install istio-ingressgateway istio/gateway -n istio-system
 helm install istiod istio/istiod -n istio-system --wait
 
-helm install cinemaabyss .\src\kubernetes\helm --namespace cinemaabyss --create-namespace
+helm install cinemaabyss ./src/kubernetes/helm --namespace cinemaabyss --create-namespace
 
 kubectl label namespace cinemaabyss istio-injection=enabled --overwrite
 
@@ -406,6 +415,8 @@ Code 503 : 399 (79.8 %)
 kubectl exec -n cinemaabyss fortio-deploy-b6757cbbb-7c9qg -c istio-proxy -- pilot-agent request GET stats | grep movies-service | grep pending
 ```
 
+
+
 И там смотрим 
 
 ```bash
@@ -414,6 +425,17 @@ You can see 21 for the upstream_rq_pending_overflow value which means 21 calls s
 ```
 
 Приложите скриншот работы circuit breaker'а
+
+[istio](./src/static/istio.png)
+
+# Результат:
+kubectl exec -n cinemaabyss fortio-deploy-78b76b5bdd-h7rlz -c istio-proxy -- pilot-agent request GET stats | grep movies-service | grep pending
+cluster.outbound|8081||movies-service.cinemaabyss.svc.cluster.local;.circuit_breakers.default.rq_pending_open: 0
+cluster.outbound|8081||movies-service.cinemaabyss.svc.cluster.local;.circuit_breakers.high.rq_pending_open: 0
+cluster.outbound|8081||movies-service.cinemaabyss.svc.cluster.local;.upstream_rq_pending_active: 0
+cluster.outbound|8081||movies-service.cinemaabyss.svc.cluster.local;.upstream_rq_pending_failure_eject: 0
+cluster.outbound|8081||movies-service.cinemaabyss.svc.cluster.local;.upstream_rq_pending_overflow: 492
+cluster.outbound|8081||movies-service.cinemaabyss.svc.cluster.local;.upstream_rq_pending_total: 8
 
 Удаляем все
 ```bash

@@ -3,9 +3,12 @@ name: Docker Build and Push
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: 
+      - "**"
     paths:
       - 'src/**'
+      - 'tests/**'
+      - 'docker-compose.yml'
       - '.github/workflows/docker-build-push.yml'
   release:
     types: [published]
@@ -28,9 +31,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # --- QEMU для сборки arm64 ---
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      # --- Buildx builder с поддержкой multi-arch ---
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Create multi-arch builder
+        run: |
+          docker buildx create --name multiarch-builder --use
+          docker buildx inspect --bootstrap
+
+      # --- Авторизация в GHCR ---
       - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
@@ -38,48 +52,59 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Monolith
-        id: meta-monolith
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.MONOLITH_IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=short
-            type=ref,event=branch
-            latest
+      # --- Тесты через docker-compose ---
+      - name: Start services with Docker Compose
+        run: |
+          docker compose up -d --build
+          sleep 45
 
+      - name: Run API tests in Docker container
+        run: docker compose run --rm tests
+
+      - name: Shutdown Docker Compose
+        if: always()
+        run: docker compose down -v
+
+      # --- Сборка и пуш Monolith ---
       - name: Build and push Monolith Docker image
         uses: docker/build-push-action@v4
         with:
           context: ./src/monolith
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-monolith.outputs.tags }}
-          labels: ${{ steps.meta-monolith.outputs.labels }}
+          tags: ghcr.io/${{ github.repository }}/monolith:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Extract metadata (tags, labels) for Movies Service
-        id: meta-movies
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.MOVIES_SERVICE_IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=short
-            type=ref,event=branch
-            latest
-
+      # --- Сборка и пуш Movies Service ---
       - name: Build and push Movies Service Docker image
         uses: docker/build-push-action@v4
         with:
           context: ./src/microservices/movies
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-movies.outputs.tags }}
-          labels: ${{ steps.meta-movies.outputs.labels }}
+          tags: ghcr.io/${{ github.repository }}/movies-service:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      
+      # --- Сборка и пуш Events Service ---
+      - name: Build and push Events Service Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./src/microservices/events
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository }}/events-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Сборка и пуш Proxy Service ---
+      - name: Build and push Proxy Service Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./src/microservices/proxy
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository }}/proxy-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
