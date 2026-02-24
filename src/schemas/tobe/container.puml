@@ -7,26 +7,19 @@ Person(user, "Пользователь", "Использует мобильно�
 
 System_Boundary(ca, "CinemaAbyss Platform") {
 
-    Container(proxy, "Proxy Service (API Gateway)", "Go",
-        "Единая точка входа. Маршрутизация запросов и постепенная миграция (Strangler Fig)")
+    Container(proxy, "Proxy Service (API Gateway)", "Go", "Единая точка входа. Маршрутизация запросов и постепенная миграция (Strangler Fig)")
 
-    Container(monolith, "Monolith", "Go",
-        "Пользователи, платежи, подписки (legacy)")
+    Container(monolith, "Monolith", "Go", "Пользователи, платежи, подписки (legacy)")
 
-    Container(movies, "Movies Service", "Go",
-        "Метаданные фильмов, жанры, рейтинги (новый сервис)")
+    Container(movies, "Movies Service", "Go", "Метаданные фильмов, жанры, рейтинги (новый сервис)")
 
-    Container(events, "Events Service", "Go",
-        "Обработка и агрегация доменных событий")
+    Container(events, "Events Service", "Go", "Обработка и агрегация доменных событий")
 
-    ContainerDb(pg, "PostgreSQL", "Database",
-        "Хранение пользователей, фильмов, платежей и подписок")
+    ContainerDb(pg, "PostgreSQL", "Database", "Хранение пользователей, фильмов, платежей и подписок")
 
-    Container(kafka, "Kafka", "Event Streaming",
-        "Доменные события: User / Movie / Payment")
+    Container(kafka, "Kafka", "Event Streaming", "Доменные события: User / Movie / Payment")
 
-    Container(kafkaUI, "Kafka UI", "Web UI",
-        "Мониторинг и отладка топиков Kafka")
+    Container(kafkaUI, "Kafka UI", "Web UI", "Мониторинг и отладка топиков Kafka")
 }
 
 Rel(user, proxy, "Использует", "HTTPS/REST")
